@@ -11,6 +11,7 @@
 <meta name="author" content="Chesscan">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://chesscan.app/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
 <!-- Open Graph (Facebook, Discord, WhatsApp…) -->
 <meta property="og:type" content="website">
@@ -581,6 +582,76 @@ input[type=range]::-webkit-slider-thumb {
   .panel { border-right: none; border-bottom: 1px solid var(--border); }
   :root { --sq-size: 48px; }
 }
+
+/* ─── Light theme ──────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:          #f4f6f9;
+  --surface:     #ffffff;
+  --card:        #eef0f5;
+  --card2:       #e4e7ef;
+  --border:      #d4d8e8;
+  --border2:     #bcc4d6;
+  --text:        #1a1d23;
+  --text-dim:    #4a5568;
+  --text-muted:  #8a93a6;
+}
+[data-theme="light"] header { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+
+/* ─── Header controls ──────────────────────────────────────────────────────── */
+.header-controls { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.ctrl-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 600;
+  padding: 5px 11px;
+  line-height: 1.4;
+  transition: all .15s;
+}
+.ctrl-btn:hover { border-color: var(--border2); background: var(--card2); color: var(--text); }
+.ctrl-btn.active { background: rgba(118,196,66,.12); border-color: var(--green-dim); color: var(--green); }
+.lang-group { display: flex; }
+.lang-group .ctrl-btn:first-child { border-radius: 8px 0 0 8px; }
+.lang-group .ctrl-btn:last-child  { border-radius: 0 8px 8px 0; border-left: none; }
+.theme-btn { font-size: 1.05rem; padding: 4px 9px; }
+
+/* ─── Tooltip ──────────────────────────────────────────────────────────────── */
+.label-row { display: flex; align-items: center; gap: 6px; }
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
+  color: var(--text-muted);
+  font-size: .6rem;
+  font-weight: 700;
+  font-style: normal;
+  cursor: help;
+  flex-shrink: 0;
+  user-select: none;
+}
+.tooltip-popup {
+  position: fixed;
+  transform: translateX(-50%);
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-size: .72rem;
+  font-weight: 400;
+  padding: 8px 11px;
+  border-radius: 8px;
+  white-space: normal;
+  width: 210px;
+  line-height: 1.5;
+  box-shadow: 0 4px 20px rgba(0,0,0,.35);
+  pointer-events: none;
+  z-index: 9999;
+}
 </style>
 </head>
 <body>
@@ -588,36 +659,52 @@ input[type=range]::-webkit-slider-thumb {
 <header>
   <span class="logo">♛</span>
   <h1>Ches<span class="split-s">s</span><span>can</span></h1>
-  <span class="badge">Stockfish 18</span>
+  <div class="header-controls">
+    <span class="badge">Stockfish 18</span>
+    <div class="lang-group">
+      <button class="ctrl-btn active" id="btn-lang-fr">FR</button>
+      <button class="ctrl-btn" id="btn-lang-en">EN</button>
+    </div>
+    <button class="ctrl-btn theme-btn" id="btn-theme" title="Toggle theme">🌙</button>
+  </div>
 </header>
 
 <main>
 
   <!-- ── Input panel ─────────────────────────────────────────────────────── -->
   <aside class="panel" id="panel-input">
-    <p class="panel-title">Position</p>
+    <p class="panel-title" data-i18n="panelPosition">Position</p>
 
     <div class="form-group">
-      <label class="form-label" for="html-input">Coller le HTML &lt;wc-chess-board&gt;</label>
+      <div class="label-row">
+        <label class="form-label" for="html-input" data-i18n="labelHtml">Coller le HTML &lt;wc-chess-board&gt;</label>
+        <i class="tooltip-icon" data-i18n-tooltip="tooltipHtml">i</i>
+      </div>
       <textarea id="html-input" placeholder="Colle ici le contenu de wc-chess-board…&#10;&#10;Les pièces (class=&quot;piece wp square-64&quot;) seront&#10;détectées automatiquement."></textarea>
     </div>
 
     <div class="form-group">
-      <span class="form-label">Trait à</span>
+      <div class="label-row">
+        <span class="form-label" data-i18n="labelTurn">Trait à</span>
+        <i class="tooltip-icon" data-i18n-tooltip="tooltipTurn">i</i>
+      </div>
       <div class="radio-group">
         <label class="radio-pill active" id="pill-white">
           <input type="radio" name="turn" value="w" checked>
-          <span class="dot"></span> Blancs
+          <span class="dot"></span><span data-i18n="labelWhite"> Blancs</span>
         </label>
         <label class="radio-pill" id="pill-black">
           <input type="radio" name="turn" value="b">
-          <span class="dot"></span> Noirs
+          <span class="dot"></span><span data-i18n="labelBlack"> Noirs</span>
         </label>
       </div>
     </div>
 
     <div class="form-group">
-      <span class="form-label">Profondeur d'analyse</span>
+      <div class="label-row">
+        <span class="form-label" data-i18n="labelDepth">Profondeur d'analyse</span>
+        <i class="tooltip-icon" data-i18n-tooltip="tooltipDepth">i</i>
+      </div>
       <div class="slider-row">
         <input type="range" id="depth-slider" min="5" max="30" value="20">
         <span class="depth-val" id="depth-val">20</span>
@@ -625,13 +712,13 @@ input[type=range]::-webkit-slider-thumb {
     </div>
 
     <div class="form-group">
-      <span class="form-label">FEN généré</span>
+      <span class="form-label" data-i18n="labelFen">FEN généré</span>
       <div class="fen-box empty" id="fen-display">En attente d'une position…</div>
     </div>
 
     <div class="btn-row">
       <button class="btn btn-primary" id="btn-analyse" disabled>
-        <span id="btn-icon">▶</span> Analyser
+        <span id="btn-icon">▶</span><span data-i18n="btnAnalyze"> Analyser</span>
       </button>
       <button class="btn btn-secondary" id="btn-stop" disabled title="Arrêter l'analyse">■</button>
     </div>
@@ -644,7 +731,7 @@ input[type=range]::-webkit-slider-thumb {
 
   <!-- ── Board panel ─────────────────────────────────────────────────────── -->
   <section class="panel" id="panel-board">
-    <p class="panel-title">Échiquier</p>
+    <p class="panel-title" data-i18n="panelBoard">Échiquier</p>
 
     <div class="board-wrap">
       <div class="coord-file" id="coord-file">
@@ -666,7 +753,7 @@ input[type=range]::-webkit-slider-thumb {
 
   <!-- ── Analysis panel ─────────────────────────────────────────────────── -->
   <aside class="panel" id="panel-analysis">
-    <p class="panel-title">Analyse</p>
+    <p class="panel-title" data-i18n="panelAnalysis">Analyse</p>
 
     <!-- Eval bar + score -->
     <div class="eval-section" style="height:100px">
@@ -675,7 +762,7 @@ input[type=range]::-webkit-slider-thumb {
         <div class="eval-bar-white" id="eval-white" style="height:50%"></div>
       </div>
       <div class="eval-info">
-        <div class="eval-label">Évaluation</div>
+        <div class="eval-label" data-i18n="evalLabel">Évaluation</div>
         <div class="eval-score" id="eval-score">—</div>
         <div class="eval-advantage" id="eval-advantage">Aucune position</div>
       </div>
@@ -683,7 +770,7 @@ input[type=range]::-webkit-slider-thumb {
 
     <!-- Best move -->
     <div class="best-move-card" id="best-move-card">
-      <div class="best-move-label">Meilleur coup</div>
+      <div class="best-move-label" data-i18n="bestMoveLabel">Meilleur coup</div>
       <div class="best-move-uci empty" id="best-uci">—</div>
       <div class="best-move-desc" id="best-desc">Lance l'analyse pour obtenir une suggestion.</div>
     </div>
@@ -691,7 +778,7 @@ input[type=range]::-webkit-slider-thumb {
     <!-- Progress table -->
     <div class="progress-wrap">
       <div class="progress-header">
-        <span>Depth</span><span>Score</span><span>Coup</span>
+        <span data-i18n="progDepth">Depth</span><span data-i18n="progScore">Score</span><span data-i18n="progMove">Coup</span>
       </div>
       <div class="progress-list" id="progress-list"></div>
     </div>
@@ -713,10 +800,87 @@ const PIECE_IMG = {
   P:'wP', N:'wN', B:'wB', R:'wR', Q:'wQ', K:'wK',
   p:'bP', n:'bN', b:'bB', r:'bR', q:'bQ', k:'bK',
 };
-const PIECE_NAMES = { P:'Pion', N:'Cavalier', B:'Fou', R:'Tour', Q:'Dame', K:'Roi' };
-const PROMO_NAMES = { q:'Dame', r:'Tour', b:'Fou', n:'Cavalier' };
 const CDN = 'https://lichess1.org/assets/piece/cburnett/';
 const SQ  = 62; // px, doit correspondre à --sq-size
+
+// ── Traductions ───────────────────────────────────────────────────────────────
+const LANGS = {
+  fr: {
+    panelPosition:'Position', panelBoard:'Échiquier', panelAnalysis:'Analyse',
+    labelHtml:'Coller le HTML <wc-chess-board>', labelTurn:'Trait à',
+    labelWhite:' Blancs', labelBlack:' Noirs',
+    labelDepth:"Profondeur d'analyse", labelFen:'FEN généré',
+    btnAnalyze:' Analyser',
+    placeholderHtml:"Colle ici le contenu de wc-chess-board…\n\nLes pièces (class=\"piece wp square-64\") seront\ndétectées automatiquement.",
+    fenEmpty:"En attente d'une position…", fenNoPieces:'Aucune pièce détectée…',
+    statusWaiting:'En attente…', statusLoading:'Chargement de Stockfish…',
+    statusReady:'Stockfish prêt', statusAnalyzing:'Analyse… depth ',
+    statusDone:'Analyse terminée · depth ', statusStopped:'Analyse arrêtée',
+    statusSending:'Envoi de la position…', statusErrorHtml:'HTML invalide ou aucune pièce trouvée.',
+    statusEngineError:'Erreur moteur : ',
+    evalLabel:'Évaluation', evalNone:'Aucune position', evalEqual:'Égalité',
+    evalWhiteAdv:'Avantage blancs', evalBlackAdv:'Avantage noirs',
+    evalMateWhite:'Mat en {n} (blancs)', evalMateBlack:'Mat en {n} (noirs)',
+    bestMoveLabel:'Meilleur coup', bestMoveAnalyzing:'Analyse en cours…',
+    bestMoveHint:"Lance l'analyse pour obtenir une suggestion.", bestMoveNone:'Aucun coup trouvé.',
+    progDepth:'Depth', progScore:'Score', progMove:'Coup',
+    matScore:'Mat', pieceWhite:'blanc', pieceBlack:'noir', capture:'capture', promo:'promo',
+    pieces:{ P:'Pion', N:'Cavalier', B:'Fou', R:'Tour', Q:'Dame', K:'Roi' },
+    promos:{ q:'Dame', r:'Tour', b:'Fou', n:'Cavalier' },
+    tooltipHtml:"Clic droit sur l'échiquier chess.com → Inspecter → copie le contenu de la balise <wc-chess-board>.",
+    tooltipTurn:"Indique quelle couleur joue le prochain coup. L'évaluation est toujours du point de vue des blancs.",
+    tooltipDepth:"Plus la valeur est haute, plus l'analyse est précise mais lente. 20 est un bon compromis.",
+  },
+  en: {
+    panelPosition:'Position', panelBoard:'Board', panelAnalysis:'Analysis',
+    labelHtml:'Paste HTML <wc-chess-board>', labelTurn:'Turn',
+    labelWhite:' White', labelBlack:' Black',
+    labelDepth:'Analysis depth', labelFen:'Generated FEN',
+    btnAnalyze:' Analyze',
+    placeholderHtml:"Paste wc-chess-board content here…\n\nPieces (class=\"piece wp square-64\") will\nbe detected automatically.",
+    fenEmpty:'Waiting for a position…', fenNoPieces:'No pieces detected…',
+    statusWaiting:'Waiting…', statusLoading:'Loading Stockfish…',
+    statusReady:'Stockfish ready', statusAnalyzing:'Analyzing… depth ',
+    statusDone:'Analysis complete · depth ', statusStopped:'Analysis stopped',
+    statusSending:'Sending position…', statusErrorHtml:'Invalid HTML or no pieces found.',
+    statusEngineError:'Engine error: ',
+    evalLabel:'Evaluation', evalNone:'No position', evalEqual:'Equal',
+    evalWhiteAdv:'White advantage', evalBlackAdv:'Black advantage',
+    evalMateWhite:'Mate in {n} (white)', evalMateBlack:'Mate in {n} (black)',
+    bestMoveLabel:'Best move', bestMoveAnalyzing:'Analyzing…',
+    bestMoveHint:'Start analysis to get a suggestion.', bestMoveNone:'No move found.',
+    progDepth:'Depth', progScore:'Score', progMove:'Move',
+    matScore:'Mate', pieceWhite:'white', pieceBlack:'black', capture:'captures', promo:'promo',
+    pieces:{ P:'Pawn', N:'Knight', B:'Bishop', R:'Rook', Q:'Queen', K:'King' },
+    promos:{ q:'Queen', r:'Rook', b:'Bishop', n:'Knight' },
+    tooltipHtml:"Right-click the chess.com board → Inspect → copy the <wc-chess-board> tag content.",
+    tooltipTurn:"Indicates which color plays next. Evaluation is always from White's perspective.",
+    tooltipDepth:"Higher depth means more accurate but slower analysis. 20 is a good balance.",
+  },
+};
+
+let lang  = localStorage.getItem('lang')  || 'fr';
+let theme = localStorage.getItem('theme') || 'dark';
+
+function t(key) { return LANGS[lang][key]; }
+
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = LANGS[lang][el.dataset.i18n]; });
+  document.querySelectorAll('[data-i18n-tooltip]').forEach(el => { el.dataset.tooltip = LANGS[lang][el.dataset.i18nTooltip]; });
+  $html.placeholder = t('placeholderHtml');
+  if ($fen.classList.contains('empty')) $fen.textContent = t('fenEmpty');
+  $eAdv.textContent = t('evalNone');
+  if (!$bestCrd.classList.contains('active')) $bestDsc.textContent = t('bestMoveHint');
+  $stxt.textContent = t('statusWaiting');
+  document.getElementById('btn-lang-fr').classList.toggle('active', lang === 'fr');
+  document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+}
+
+function applyTheme() {
+  const isLight = theme === 'light';
+  document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+  document.getElementById('btn-theme').textContent = isLight ? '☀️' : '🌙';
+}
 
 // ── État global ───────────────────────────────────────────────────────────────
 let pieces    = {};
@@ -785,16 +949,17 @@ function buildFen(p, turn) {
 }
 
 function formatMove(move, p) {
-  if (!move || move === '(none)') return 'Aucun coup trouvé.';
+  const L = LANGS[lang];
+  if (!move || move === '(none)') return L.bestMoveNone;
   const ff = move.charCodeAt(0) - 96, fr = +move[1];
   const tf = move.charCodeAt(2) - 96, tr = +move[3];
   const promo = move[4];
   const piece = p[`${ff}${fr}`], cap = p[`${tf}${tr}`];
-  const pn    = piece ? PIECE_NAMES[piece.toUpperCase()] : '?';
-  const col   = piece && piece === piece.toUpperCase() ? 'blanc' : 'noir';
+  const pn  = piece ? L.pieces[piece.toUpperCase()] : '?';
+  const col = piece && piece === piece.toUpperCase() ? L.pieceWhite : L.pieceBlack;
   let d = `${pn} ${col} · ${move.slice(0,2)} → ${move.slice(2,4)}`;
-  if (cap) d += ` · capture ${PIECE_NAMES[cap.toUpperCase()]}`;
-  if (promo) d += ` · promo ${PROMO_NAMES[promo]}`;
+  if (cap) d += ` · ${L.capture} ${L.pieces[cap.toUpperCase()]}`;
+  if (promo) d += ` · ${L.promo} ${L.promos[promo]}`;
   return d;
 }
 
@@ -910,7 +1075,7 @@ function updateEval(scoreStr) {
   if (scoreStr === null) {
     $eScore.className = 'eval-score';
     $eScore.textContent = '—';
-    $eAdv.textContent = 'Aucune position';
+    $eAdv.textContent = t('evalNone');
     $eBlack.style.height = '50%';
     $eWhite.style.height = '50%';
     return;
@@ -921,7 +1086,7 @@ function updateEval(scoreStr) {
     blackPct = n > 0 ? 5 : 95;
     whitePct = 100 - blackPct;
     scoreDisplay = `M${Math.abs(n)}`;
-    advText = n > 0 ? `Mat en ${Math.abs(n)} (blancs)` : `Mat en ${Math.abs(n)} (noirs)`;
+    advText = (n > 0 ? t('evalMateWhite') : t('evalMateBlack')).replace('{n}', Math.abs(n));
     cls = 'mate';
   } else {
     const cp = parseFloat(scoreStr);
@@ -929,9 +1094,9 @@ function updateEval(scoreStr) {
     whitePct = 50 + clamped * 4.5;
     blackPct = 100 - whitePct;
     scoreDisplay = (cp >= 0 ? '+' : '') + cp.toFixed(2);
-    if (Math.abs(cp) < 0.2)  advText = 'Égalité';
-    else if (cp > 0) advText = `Avantage blancs`;
-    else advText = `Avantage noirs`;
+    if (Math.abs(cp) < 0.2)  advText = t('evalEqual');
+    else if (cp > 0) advText = t('evalWhiteAdv');
+    else advText = t('evalBlackAdv');
     cls = cp >= 0 ? 'positive' : 'negative';
   }
 
@@ -953,7 +1118,7 @@ function addProgressRow(depth, rawScore, move) {
   let scoreStr, scoreCls, evalVal;
   if (rawScore && rawScore[0] === 'mate') {
     const n = +rawScore[1];
-    scoreStr = `Mat ${Math.abs(n)}`;
+    scoreStr = `${t('matScore')} ${Math.abs(n)}`;
     scoreCls = 'mat';
     evalVal  = `mate ${n}`;
   } else if (rawScore) {
@@ -1009,18 +1174,18 @@ function ensureWorker() {
   if (worker) return;
   worker = new Worker('/stockfish/stockfish-18-lite-single.js');
   worker.onmessage = (e) => handleLine(typeof e.data === 'string' ? e.data : String(e.data));
-  worker.onerror   = (e) => setStatus('error', 'Erreur moteur : ' + (e.message || e));
+  worker.onerror   = (e) => setStatus('error', t('statusEngineError') + (e.message || e));
   // Déclenchement immédiat : le moteur queue les commandes jusqu'à être prêt
   worker.postMessage('uci');
   worker.postMessage('isready');
-  setStatus('loading', 'Chargement de Stockfish…');
+  setStatus('loading', t('statusLoading'));
 }
 
 function handleLine(line) {
   if (!line) return;
 
   // Prêt
-  if (line === 'readyok') { setStatus('ready', 'Stockfish prêt'); return; }
+  if (line === 'readyok') { setStatus('ready', t('statusReady')); return; }
   if (line === 'uciok')   { return; }
 
   // ── Ligne de progression ──
@@ -1042,7 +1207,7 @@ function handleLine(line) {
       normScore = [sM[1], String(sign * +sM[2])];
     }
     addProgressRow(depth, normScore, pM[1]);
-    setStatus('loading', `Analyse… depth ${depth}`);
+    setStatus('loading', t('statusAnalyzing') + depth);
   }
 
   // ── Meilleur coup ──
@@ -1067,14 +1232,14 @@ function handleLine(line) {
     $btnAna.disabled  = false;
     $btnStop.disabled = true;
     $btnIcon.innerHTML = '▶';
-    setStatus('ready', `Analyse terminée · depth ${lastDepth}`);
+    setStatus('ready', t('statusDone') + lastDepth);
   }
 }
 
 // ── Analyse ───────────────────────────────────────────────────────────────────
 function startAnalysis() {
   if (!parseAndRender()) {
-    setStatus('error', 'HTML invalide ou aucune pièce trouvée.');
+    setStatus('error', t('statusErrorHtml'));
     return;
   }
 
@@ -1088,7 +1253,7 @@ function startAnalysis() {
   clearArrow();
   $bestUci.textContent = '—';
   $bestUci.classList.add('empty');
-  $bestDsc.textContent = 'Analyse en cours…';
+  $bestDsc.textContent = t('bestMoveAnalyzing');
   $bestCrd.classList.remove('active');
   updateEval(null);
 
@@ -1098,7 +1263,7 @@ function startAnalysis() {
   $btnIcon.innerHTML = '<span class="spinner"></span>';
 
   ensureWorker();
-  setStatus('loading', 'Envoi de la position…');
+  setStatus('loading', t('statusSending'));
   worker.postMessage('stop');
   worker.postMessage('ucinewgame');
   worker.postMessage(`position fen ${fen}`);
@@ -1114,14 +1279,14 @@ $btnStop.addEventListener('click', () => {
   $btnAna.disabled  = false;
   $btnStop.disabled = true;
   $btnIcon.innerHTML = '▶';
-  setStatus('ready', 'Analyse arrêtée');
+  setStatus('ready', t('statusStopped'));
 });
 
 $html.addEventListener('input', () => {
   const ok = parseAndRender();
   $btnAna.disabled = !ok;
   if (!ok) {
-    $fen.textContent = 'Aucune pièce détectée…';
+    $fen.textContent = t('fenNoPieces');
     $fen.classList.add('empty');
     $board.innerHTML = '';
     clearArrow();
@@ -1147,7 +1312,46 @@ document.querySelectorAll('input[name=turn]').forEach(radio => {
 // Depth slider
 $depth.addEventListener('input', () => { $dval.textContent = $depth.value; });
 
+// ── Tooltips (fixed au body pour éviter le clipping overflow) ────────────────
+(function initTooltips() {
+  let tip = null;
+  document.querySelectorAll('.tooltip-icon').forEach(icon => {
+    icon.addEventListener('mouseenter', () => {
+      tip = document.createElement('div');
+      tip.className = 'tooltip-popup';
+      tip.textContent = icon.dataset.tooltip || '';
+      document.body.appendChild(tip);
+      const r = icon.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const ty = r.top - tip.offsetHeight - 10;
+      tip.style.left = cx + 'px';
+      tip.style.top  = Math.max(8, ty) + 'px';
+      // Adjust if tooltip goes off right/left edge
+      const tr = tip.getBoundingClientRect();
+      if (tr.right > window.innerWidth - 8)
+        tip.style.left = (window.innerWidth - 8 - tip.offsetWidth / 2) + 'px';
+      if (tr.left < 8)
+        tip.style.left = (8 + tip.offsetWidth / 2) + 'px';
+    });
+    icon.addEventListener('mouseleave', () => { if (tip) { tip.remove(); tip = null; } });
+  });
+})();
+
+// ── Langue & thème ────────────────────────────────────────────────────────────
+document.getElementById('btn-lang-fr').addEventListener('click', () => {
+  lang = 'fr'; localStorage.setItem('lang', lang); applyLang();
+});
+document.getElementById('btn-lang-en').addEventListener('click', () => {
+  lang = 'en'; localStorage.setItem('lang', lang); applyLang();
+});
+document.getElementById('btn-theme').addEventListener('click', () => {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', theme); applyTheme();
+});
+
 // ── Préchargement de Stockfish au démarrage ───────────────────────────────────
+applyTheme();
+applyLang();
 ensureWorker();
 syncArrowSvg();
 

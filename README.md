@@ -1,9 +1,12 @@
 # Chesscan
 
+[![Live](https://img.shields.io/badge/Live-chesscan.app-76c442?logo=google-chrome&logoColor=white)](https://chesscan.app/)
 ![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
 ![Stockfish](https://img.shields.io/badge/Stockfish-18_WASM-b58863)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?logo=javascript&logoColor=black)
+
+**🌐 [https://chesscan.app/](https://chesscan.app/)**
 
 Analyse de position d'échecs en temps réel à partir du HTML de chess.com. Colle le contenu d'un échiquier `wc-chess-board`, l'app génère le FEN et lance Stockfish 18 directement dans le navigateur via WebAssembly.
 
