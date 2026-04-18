@@ -3,7 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ChessBot Analyzer</title>
+
+<!-- SEO de base -->
+<title>ChessBot Analyzer – Analyse ta position chess.com avec Stockfish</title>
+<meta name="description" content="Analyse instantanément n'importe quelle position chess.com avec le moteur Stockfish 18. Colle le HTML de ton plateau, obtiens le meilleur coup, l'évaluation et la barre d'avantage. 100 % gratuit et dans le navigateur.">
+<meta name="keywords" content="analyseur échecs, analyse position chess.com, Stockfish en ligne, analyse échecs gratuite, meilleur coup échecs, FEN générateur, outil analyse échecs, chess analyzer, analyser partie chess.com">
+<meta name="author" content="ChessBot Analyzer">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://chesscan.app/">
+
+<!-- Open Graph (Facebook, Discord, WhatsApp…) -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chesscan.app/">
+<meta property="og:title" content="ChessBot Analyzer – Analyse ta position chess.com avec Stockfish">
+<meta property="og:description" content="Analyse instantanément n'importe quelle position chess.com avec Stockfish 18. Obtiens le meilleur coup et l'évaluation en un clic, gratuitement.">
+<meta property="og:image" content="https://chesscan.app/images/img.png">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="ChessBot Analyzer">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ChessBot Analyzer – Analyse ta position chess.com avec Stockfish">
+<meta name="twitter:description" content="Analyse instantanément n'importe quelle position chess.com avec Stockfish 18. Obtiens le meilleur coup et l'évaluation en un clic, gratuitement.">
+<meta name="twitter:image" content="https://chesscan.app/images/img.png">
+
+<!-- JSON-LD : WebApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "ChessBot Analyzer",
+  "url": "https://chesscan.app/",
+  "description": "Analyse instantanément n'importe quelle position chess.com avec le moteur Stockfish 18 directement dans le navigateur.",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript. Requires WebAssembly.",
+  "inLanguage": "fr-FR",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "featureList": [
+    "Analyse de position chess.com",
+    "Moteur Stockfish 18 WebAssembly",
+    "Génération de FEN automatique",
+    "Barre d'évaluation en temps réel",
+    "Affichage du meilleur coup avec flèche"
+  ]
+}
+</script>
 <style>
 /* ─── Reset & Base ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -655,12 +704,12 @@ const CSS_TO_FEN = {
   bp:'p', bn:'n', bb:'b', br:'r', bq:'q', bk:'k',
 };
 const PIECE_IMG = {
-  P:'wp', N:'wn', B:'wb', R:'wr', Q:'wq', K:'wk',
-  p:'bp', n:'bn', b:'bb', r:'br', q:'bq', k:'bk',
+  P:'wP', N:'wN', B:'wB', R:'wR', Q:'wQ', K:'wK',
+  p:'bP', n:'bN', b:'bB', r:'bR', q:'bQ', k:'bK',
 };
 const PIECE_NAMES = { P:'Pion', N:'Cavalier', B:'Fou', R:'Tour', Q:'Dame', K:'Roi' };
 const PROMO_NAMES = { q:'Dame', r:'Tour', b:'Fou', n:'Cavalier' };
-const CDN = 'https://assets-themes.chess.com/image/pxaxj/150/';
+const CDN = 'https://lichess1.org/assets/piece/cburnett/';
 const SQ  = 62; // px, doit correspondre à --sq-size
 
 // ── État global ───────────────────────────────────────────────────────────────
@@ -773,7 +822,7 @@ function renderBoard(p, fromSq, toSq) {
       const letter = p[key];
       if (letter) {
         const img = document.createElement('img');
-        img.src  = `${CDN}${PIECE_IMG[letter]}.png`;
+        img.src  = `${CDN}${PIECE_IMG[letter]}.svg`;
         img.alt  = letter;
         img.draggable = false;
         sq.appendChild(img);
