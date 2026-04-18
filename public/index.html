@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChessBot Analyzer</title>
+<style>
+/* ─── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #0e1015;
+  --surface:     #161920;
+  --card:        #1e2230;
+  --card2:       #252a3a;
+  --border:      #2e3448;
+  --border2:     #3a4060;
+  --green:       #76c442;
+  --green-dim:   #4a8028;
+  --green-glow:  rgba(118,196,66,.25);
+  --red:         #e05252;
+  --text:        #e8eaf0;
+  --text-dim:    #7a859a;
+  --text-muted:  #4a5368;
+  --board-light: #ebecd0;
+  --board-dark:  #739552;
+  --sq-size:     62px;
+  --arrow:       rgba(114,196,66,.82);
+  --hl-from:     rgba(255,200,0,.55);
+  --hl-to:       rgba(255,200,0,.35);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* ─── Header ───────────────────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 20px rgba(0,0,0,.4);
+}
+header .logo { font-size: 26px; }
+header h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  color: var(--text);
+}
+header h1 span { color: var(--green); }
+header .badge {
+  margin-left: auto;
+  font-size: .72rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--green-dim);
+  color: var(--green);
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+
+/* ─── Main Layout ──────────────────────────────────────────────────────────── */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 300px 1fr 320px;
+  gap: 0;
+  min-height: 0;
+}
+
+/* ─── Panels ───────────────────────────────────────────────────────────────── */
+.panel {
+  padding: 22px 20px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+}
+.panel:last-child { border-right: none; }
+
+.panel-title {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.panel-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ─── Input panel ──────────────────────────────────────────────────────────── */
+#panel-input { background: var(--surface); }
+
+textarea#html-input {
+  width: 100%;
+  height: 180px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: .72rem;
+  line-height: 1.5;
+  padding: 10px 12px;
+  resize: vertical;
+  transition: border-color .2s;
+  outline: none;
+}
+textarea#html-input:focus { border-color: var(--green-dim); }
+textarea#html-input::placeholder { color: var(--text-muted); }
+
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-label {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: .3px;
+}
+
+/* Radio turn */
+.radio-group { display: flex; gap: 10px; }
+.radio-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 600;
+  transition: all .15s;
+  user-select: none;
+}
+.radio-pill:hover { border-color: var(--border2); background: var(--card2); }
+.radio-pill input { display: none; }
+.radio-pill.active {
+  border-color: var(--green-dim);
+  background: rgba(118,196,66,.08);
+  color: var(--green);
+}
+.radio-pill .dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  flex-shrink: 0;
+}
+.radio-pill.active .dot { background: var(--green); }
+
+/* Depth slider */
+.slider-row { display: flex; align-items: center; gap: 10px; }
+input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  background: var(--card2);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--green);
+  cursor: pointer;
+  box-shadow: 0 0 6px var(--green-glow);
+}
+.depth-val {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--green);
+  width: 28px;
+  text-align: right;
+}
+
+/* FEN display */
+.fen-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: 'Consolas', monospace;
+  font-size: .68rem;
+  color: var(--text-dim);
+  word-break: break-all;
+  line-height: 1.6;
+  min-height: 48px;
+}
+.fen-box.empty { color: var(--text-muted); font-style: italic; }
+
+/* Buttons */
+.btn {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 9px;
+  font-size: .88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-primary {
+  background: var(--green);
+  color: #0a1a04;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #8ed454;
+  box-shadow: 0 0 16px var(--green-glow);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled { opacity: .4; cursor: default; transform: none; box-shadow: none; }
+.btn-secondary {
+  background: var(--card2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--border2); background: var(--card); }
+
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn-primary { flex: 1; }
+
+/* ─── Board panel ──────────────────────────────────────────────────────────── */
+#panel-board {
+  background: var(--bg);
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border);
+}
+
+.board-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-outer {
+  position: relative;
+  display: flex;
+}
+
+.coord-file, .coord-rank {
+  display: flex;
+  font-size: .65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.coord-file { gap: 0; margin-left: 20px; }
+.coord-file span { width: var(--sq-size); text-align: center; }
+.coord-rank {
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 2px 0;
+  width: 20px;
+}
+.coord-rank span { text-align: center; }
+
+/* The board */
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, var(--sq-size));
+  grid-template-rows:    repeat(8, var(--sq-size));
+  position: relative;
+  border: 2px solid #333;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,.7);
+}
+
+.sq {
+  width: var(--sq-size);
+  height: var(--sq-size);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sq.light { background: var(--board-light); }
+.sq.dark  { background: var(--board-dark); }
+.sq.hl-from { outline: inset 4px var(--hl-from); background: var(--hl-from); }
+.sq.hl-to   { outline: inset 4px var(--hl-to);   background: var(--hl-to);   }
+
+.sq img {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
+}
+
+/* SVG arrow overlay */
+#arrow-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: calc(var(--sq-size) * 8);
+  height: calc(var(--sq-size) * 8);
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Empty board placeholder */
+.board-placeholder {
+  width: calc(var(--sq-size) * 8);
+  height: calc(var(--sq-size) * 8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: .85rem;
+  border: 2px dashed var(--border);
+  border-radius: 4px;
+}
+.board-placeholder .icon { font-size: 3rem; opacity: .3; }
+
+/* ─── Analysis panel ───────────────────────────────────────────────────────── */
+#panel-analysis { background: var(--surface); }
+
+/* Eval bar */
+.eval-section { display: flex; gap: 12px; align-items: stretch; }
+.eval-bar-wrap {
+  width: 24px;
+  flex-shrink: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+.eval-bar-black {
+  width: 100%;
+  background: #1a1a1a;
+  transition: height .5s ease;
+}
+.eval-bar-white {
+  width: 100%;
+  background: #f0f0f0;
+  transition: height .5s ease;
+}
+.eval-info { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.eval-score {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.eval-score.positive { color: #f0f0f0; }
+.eval-score.negative { color: var(--text-dim); }
+.eval-score.mate     { color: var(--green); }
+.eval-label {
+  font-size: .7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.eval-advantage {
+  font-size: .8rem;
+  color: var(--text-dim);
+  padding: 4px 8px;
+  background: var(--card);
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+/* Best move card */
+.best-move-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color .3s;
+}
+.best-move-card.active { border-color: var(--green-dim); }
+
+.best-move-label {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.best-move-uci {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--green);
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.best-move-uci.empty { color: var(--text-muted); font-size: 1.2rem; font-weight: 400; }
+.best-move-desc {
+  font-size: .8rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* Progress table */
+.progress-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.progress-header {
+  display: grid;
+  grid-template-columns: 44px 72px 1fr;
+  gap: 4px;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+.progress-list {
+  overflow-y: auto;
+  max-height: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 2px;
+}
+.progress-list::-webkit-scrollbar { width: 4px; }
+.progress-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.progress-row {
+  display: grid;
+  grid-template-columns: 44px 72px 1fr;
+  gap: 4px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  transition: background .15s;
+}
+.progress-row:hover { background: var(--card2); }
+.progress-row.latest {
+  background: rgba(118,196,66,.07);
+  color: var(--text);
+}
+.progress-row.latest .pr-move { color: var(--green); font-weight: 700; }
+.pr-depth { color: var(--text-muted); }
+.pr-score { font-weight: 600; }
+.pr-score.pos { color: #e8e8e8; }
+.pr-score.neg { color: var(--text-dim); }
+.pr-score.mat { color: var(--green); }
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: .75rem;
+  color: var(--text-dim);
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+.status-dot.ready   { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+.status-dot.loading { background: #f0c040; animation: pulse 1s ease-in-out infinite; }
+.status-dot.error   { background: var(--red); }
+
+@keyframes pulse {
+  0%,100% { opacity:1; } 50% { opacity:.3; }
+}
+
+/* Spinner inside button */
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(0,0,0,.2);
+  border-top-color: #0a1a04;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  :root { --sq-size: 52px; }
+  main { grid-template-columns: 260px 1fr 280px; }
+}
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; grid-template-rows: auto; }
+  .panel { border-right: none; border-bottom: 1px solid var(--border); }
+  :root { --sq-size: 48px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">♛</span>
+  <h1>Chess<span>Bot</span> Analyzer</h1>
+  <span class="badge">Stockfish 18</span>
+</header>
+
+<main>
+
+  <!-- ── Input panel ─────────────────────────────────────────────────────── -->
+  <aside class="panel" id="panel-input">
+    <p class="panel-title">Position</p>
+
+    <div class="form-group">
+      <label class="form-label" for="html-input">Coller le HTML &lt;wc-chess-board&gt;</label>
+      <textarea id="html-input" placeholder="Colle ici le contenu de wc-chess-board…&#10;&#10;Les pièces (class=&quot;piece wp square-64&quot;) seront&#10;détectées automatiquement."></textarea>
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">Trait à</span>
+      <div class="radio-group">
+        <label class="radio-pill active" id="pill-white">
+          <input type="radio" name="turn" value="w" checked>
+          <span class="dot"></span> Blancs
+        </label>
+        <label class="radio-pill" id="pill-black">
+          <input type="radio" name="turn" value="b">
+          <span class="dot"></span> Noirs
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">Profondeur d'analyse</span>
+      <div class="slider-row">
+        <input type="range" id="depth-slider" min="5" max="30" value="20">
+        <span class="depth-val" id="depth-val">20</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">FEN généré</span>
+      <div class="fen-box empty" id="fen-display">En attente d'une position…</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-analyse" disabled>
+        <span id="btn-icon">▶</span> Analyser
+      </button>
+      <button class="btn btn-secondary" id="btn-stop" disabled title="Arrêter l'analyse">■</button>
+    </div>
+
+    <div class="status-bar">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">En attente…</span>
+    </div>
+  </aside>
+
+  <!-- ── Board panel ─────────────────────────────────────────────────────── -->
+  <section class="panel" id="panel-board">
+    <p class="panel-title">Échiquier</p>
+
+    <div class="board-wrap">
+      <div class="coord-file" id="coord-file">
+        <span>a</span><span>b</span><span>c</span><span>d</span>
+        <span>e</span><span>f</span><span>g</span><span>h</span>
+      </div>
+      <div class="board-outer">
+        <div class="coord-rank" id="coord-rank">
+          <span>8</span><span>7</span><span>6</span><span>5</span>
+          <span>4</span><span>3</span><span>2</span><span>1</span>
+        </div>
+        <div style="position:relative">
+          <div id="board"></div>
+          <svg id="arrow-svg" viewBox="0 0 1 1" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Analysis panel ─────────────────────────────────────────────────── -->
+  <aside class="panel" id="panel-analysis">
+    <p class="panel-title">Analyse</p>
+
+    <!-- Eval bar + score -->
+    <div class="eval-section" style="height:100px">
+      <div class="eval-bar-wrap" id="eval-bar">
+        <div class="eval-bar-black" id="eval-black" style="height:50%"></div>
+        <div class="eval-bar-white" id="eval-white" style="height:50%"></div>
+      </div>
+      <div class="eval-info">
+        <div class="eval-label">Évaluation</div>
+        <div class="eval-score" id="eval-score">—</div>
+        <div class="eval-advantage" id="eval-advantage">Aucune position</div>
+      </div>
+    </div>
+
+    <!-- Best move -->
+    <div class="best-move-card" id="best-move-card">
+      <div class="best-move-label">Meilleur coup</div>
+      <div class="best-move-uci empty" id="best-uci">—</div>
+      <div class="best-move-desc" id="best-desc">Lance l'analyse pour obtenir une suggestion.</div>
+    </div>
+
+    <!-- Progress table -->
+    <div class="progress-wrap">
+      <div class="progress-header">
+        <span>Depth</span><span>Score</span><span>Coup</span>
+      </div>
+      <div class="progress-list" id="progress-list"></div>
+    </div>
+  </aside>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ChessBot — logique frontend
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Constantes ────────────────────────────────────────────────────────────────
+const CSS_TO_FEN = {
+  wp:'P', wn:'N', wb:'B', wr:'R', wq:'Q', wk:'K',
+  bp:'p', bn:'n', bb:'b', br:'r', bq:'q', bk:'k',
+};
+const PIECE_IMG = {
+  P:'wp', N:'wn', B:'wb', R:'wr', Q:'wq', K:'wk',
+  p:'bp', n:'bn', b:'bb', r:'br', q:'bq', k:'bk',
+};
+const PIECE_NAMES = { P:'Pion', N:'Cavalier', B:'Fou', R:'Tour', Q:'Dame', K:'Roi' };
+const PROMO_NAMES = { q:'Dame', r:'Tour', b:'Fou', n:'Cavalier' };
+const CDN = 'https://assets-themes.chess.com/image/pxaxj/150/';
+const SQ  = 62; // px, doit correspondre à --sq-size
+
+// ── État global ───────────────────────────────────────────────────────────────
+let pieces    = {};
+let worker    = null;
+let analyzing = false;
+let lastDepth = 0;
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const $html    = document.getElementById('html-input');
+const $fen     = document.getElementById('fen-display');
+const $board   = document.getElementById('board');
+const $arrow   = document.getElementById('arrow-svg');
+const $btnAna  = document.getElementById('btn-analyse');
+const $btnStop = document.getElementById('btn-stop');
+const $btnIcon = document.getElementById('btn-icon');
+const $sdot    = document.getElementById('status-dot');
+const $stxt    = document.getElementById('status-text');
+const $eScore  = document.getElementById('eval-score');
+const $eAdv    = document.getElementById('eval-advantage');
+const $eBlack  = document.getElementById('eval-black');
+const $eWhite  = document.getElementById('eval-white');
+const $bestUci = document.getElementById('best-uci');
+const $bestDsc = document.getElementById('best-desc');
+const $bestCrd = document.getElementById('best-move-card');
+const $prog    = document.getElementById('progress-list');
+const $depth   = document.getElementById('depth-slider');
+const $dval    = document.getElementById('depth-val');
+
+// ── FEN helpers ───────────────────────────────────────────────────────────────
+function parsePieces(html) {
+  const out = {};
+  const re  = /class="piece\s([^"]+)"/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const classes = m[1].split(/\s+/);
+    const square  = classes.find(c => /^square-\d{2}$/.test(c));
+    const type    = classes.find(c => CSS_TO_FEN[c]);
+    if (square && type) out[square.slice(7)] = CSS_TO_FEN[type];
+  }
+  return out;
+}
+
+function detectCastling(p) {
+  let r = '';
+  if (p['51']==='K' && p['81']==='R') r += 'K';
+  if (p['51']==='K' && p['11']==='R') r += 'Q';
+  if (p['58']==='k' && p['88']==='r') r += 'k';
+  if (p['58']==='k' && p['18']==='r') r += 'q';
+  return r || '-';
+}
+
+function buildFen(p, turn) {
+  const castling = detectCastling(p);
+  const ranks = [];
+  for (let rank = 8; rank >= 1; rank--) {
+    let s = '', empty = 0;
+    for (let file = 1; file <= 8; file++) {
+      const l = p[`${file}${rank}`];
+      if (l) { if (empty) { s += empty; empty = 0; } s += l; } else empty++;
+    }
+    if (empty) s += empty;
+    ranks.push(s);
+  }
+  return `${ranks.join('/')} ${turn} ${castling} - 0 1`;
+}
+
+function formatMove(move, p) {
+  if (!move || move === '(none)') return 'Aucun coup trouvé.';
+  const ff = move.charCodeAt(0) - 96, fr = +move[1];
+  const tf = move.charCodeAt(2) - 96, tr = +move[3];
+  const promo = move[4];
+  const piece = p[`${ff}${fr}`], cap = p[`${tf}${tr}`];
+  const pn    = piece ? PIECE_NAMES[piece.toUpperCase()] : '?';
+  const col   = piece && piece === piece.toUpperCase() ? 'blanc' : 'noir';
+  let d = `${pn} ${col} · ${move.slice(0,2)} → ${move.slice(2,4)}`;
+  if (cap) d += ` · capture ${PIECE_NAMES[cap.toUpperCase()]}`;
+  if (promo) d += ` · promo ${PROMO_NAMES[promo]}`;
+  return d;
+}
+
+// ── Board rendering ───────────────────────────────────────────────────────────
+function renderBoard(p, fromSq, toSq) {
+  $board.innerHTML = '';
+  clearArrow();
+
+  // Draw 64 squares: row 0 = rank 8, col 0 = file a
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const file  = col + 1;
+      const rank  = 8 - row;
+      const key   = `${file}${rank}`;
+      const light = (file + rank) % 2 === 0;
+
+      const sq = document.createElement('div');
+      sq.className = `sq ${light ? 'light' : 'dark'}`;
+      if (fromSq && key === fromSq) sq.classList.add('hl-from');
+      if (toSq   && key === toSq)   sq.classList.add('hl-to');
+
+      const letter = p[key];
+      if (letter) {
+        const img = document.createElement('img');
+        img.src  = `${CDN}${PIECE_IMG[letter]}.png`;
+        img.alt  = letter;
+        img.draggable = false;
+        sq.appendChild(img);
+      }
+      $board.appendChild(sq);
+    }
+  }
+}
+
+// ── Arrow drawing (SVG) ───────────────────────────────────────────────────────
+function clearArrow() {
+  $arrow.innerHTML = '';
+}
+
+function drawArrow(uciMove) {
+  clearArrow();
+  if (!uciMove || uciMove.length < 4) return;
+
+  const ff = uciMove.charCodeAt(0) - 96, fr = +uciMove[1];
+  const tf = uciMove.charCodeAt(2) - 96, tr = +uciMove[3];
+
+  // Center of each square in px (board origin = top-left = a8)
+  const x1 = (ff - 1) * SQ + SQ / 2;
+  const y1 = (8 - fr) * SQ + SQ / 2;
+  const x2 = (tf - 1) * SQ + SQ / 2;
+  const y2 = (8 - tr) * SQ + SQ / 2;
+
+  const TOTAL = Math.hypot(x2 - x1, y2 - y1);
+  const SW    = SQ * 0.18;        // stroke width
+  const HEAD  = SQ * 0.38;        // arrowhead length
+  const INSET = SQ * 0.35;        // shorten end (don't overlap piece)
+  const ratio = (TOTAL - INSET) / TOTAL;
+
+  const ex = x1 + (x2 - x1) * ratio;
+  const ey = y1 + (y2 - y1) * ratio;
+
+  // Build SVG with a marker
+  const ns  = 'http://www.w3.org/2000/svg';
+  const mkr = document.createElementNS(ns, 'marker');
+  mkr.setAttribute('id', 'ah');
+  mkr.setAttribute('markerWidth', '3');
+  mkr.setAttribute('markerHeight', '3');
+  mkr.setAttribute('refX', '1.5');
+  mkr.setAttribute('refY', '1.5');
+  mkr.setAttribute('orient', 'auto');
+  const poly = document.createElementNS(ns, 'polygon');
+  poly.setAttribute('points', '0,0 3,1.5 0,3');
+  poly.setAttribute('fill', 'rgba(114,196,66,.85)');
+  mkr.appendChild(poly);
+
+  const defs = document.createElementNS(ns, 'defs');
+  defs.appendChild(mkr);
+  $arrow.appendChild(defs);
+
+  const line = document.createElementNS(ns, 'line');
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+  line.setAttribute('stroke', 'rgba(114,196,66,.75)');
+  line.setAttribute('stroke-width', SW);
+  line.setAttribute('stroke-linecap', 'round');
+  line.setAttribute('marker-end', 'url(#ah)');
+  $arrow.appendChild(line);
+}
+
+// Update SVG viewBox to match board pixel size
+function syncArrowSvg() {
+  const size = SQ * 8;
+  $arrow.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  $arrow.style.width  = size + 'px';
+  $arrow.style.height = size + 'px';
+}
+
+// ── Eval bar ──────────────────────────────────────────────────────────────────
+function updateEval(scoreStr) {
+  let blackPct = 50, whitePct = 50;
+  let scoreDisplay = '—', advText = 'Égalité';
+  let cls = '';
+
+  if (scoreStr === null) {
+    $eScore.className = 'eval-score';
+    $eScore.textContent = '—';
+    $eAdv.textContent = 'Aucune position';
+    $eBlack.style.height = '50%';
+    $eWhite.style.height = '50%';
+    return;
+  }
+
+  if (scoreStr.startsWith('mate')) {
+    const n = parseInt(scoreStr.replace('mate ', ''));
+    blackPct = n > 0 ? 5 : 95;
+    whitePct = 100 - blackPct;
+    scoreDisplay = `M${Math.abs(n)}`;
+    advText = n > 0 ? `Mat en ${Math.abs(n)} (blancs)` : `Mat en ${Math.abs(n)} (noirs)`;
+    cls = 'mate';
+  } else {
+    const cp = parseFloat(scoreStr);
+    const clamped = Math.max(-10, Math.min(10, cp));
+    whitePct = 50 + clamped * 4.5;
+    blackPct = 100 - whitePct;
+    scoreDisplay = (cp >= 0 ? '+' : '') + cp.toFixed(2);
+    if (Math.abs(cp) < 0.2)  advText = 'Égalité';
+    else if (cp > 0) advText = `Avantage blancs`;
+    else advText = `Avantage noirs`;
+    cls = cp >= 0 ? 'positive' : 'negative';
+  }
+
+  $eScore.className = `eval-score ${cls}`;
+  $eScore.textContent = scoreDisplay;
+  $eAdv.textContent = advText;
+  $eBlack.style.height = blackPct + '%';
+  $eWhite.style.height = whitePct + '%';
+}
+
+// ── Progress rows ─────────────────────────────────────────────────────────────
+function addProgressRow(depth, rawScore, move) {
+  // Remove 'latest' from previous
+  $prog.querySelectorAll('.latest').forEach(r => r.classList.remove('latest'));
+
+  const row = document.createElement('div');
+  row.className = 'progress-row latest';
+
+  let scoreStr, scoreCls, evalVal;
+  if (rawScore && rawScore[0] === 'mate') {
+    const n = +rawScore[1];
+    scoreStr = `Mat ${Math.abs(n)}`;
+    scoreCls = 'mat';
+    evalVal  = `mate ${n}`;
+  } else if (rawScore) {
+    const cp = +rawScore[1];
+    scoreStr = (cp >= 0 ? '+' : '') + (cp / 100).toFixed(2);
+    scoreCls = cp >= 0 ? 'pos' : 'neg';
+    evalVal  = (cp / 100).toFixed(2);
+  } else {
+    scoreStr = '—'; scoreCls = ''; evalVal = null;
+  }
+
+  row.innerHTML = `
+    <span class="pr-depth">${depth}</span>
+    <span class="pr-score ${scoreCls}">${scoreStr}</span>
+    <span class="pr-move">${move}</span>
+  `;
+  $prog.appendChild(row);
+  $prog.scrollTop = $prog.scrollHeight;
+
+  updateEval(evalVal);
+}
+
+// ── Status helpers ────────────────────────────────────────────────────────────
+function setStatus(state, text) {
+  $sdot.className = `status-dot ${state}`;
+  $stxt.textContent = text;
+}
+
+// ── Parse + render from textarea ──────────────────────────────────────────────
+function parseAndRender() {
+  const html = $html.value.trim();
+  if (!html) { pieces = {}; return false; }
+
+  pieces = parsePieces(html);
+  if (Object.keys(pieces).length === 0) { pieces = {}; return false; }
+
+  const turn = document.querySelector('input[name=turn]:checked').value;
+  const fen  = buildFen(pieces, turn);
+
+  $fen.textContent = fen;
+  $fen.classList.remove('empty');
+  renderBoard(pieces);
+  syncArrowSvg();
+
+  return true;
+}
+
+// ── Worker management ─────────────────────────────────────────────────────────
+// stockfish-18-lite-single.js est lui-même un worker Emscripten.
+// Il s'active en worker quand son URL contient "#,worker".
+// Communication : strings UCI brutes dans les deux sens.
+function ensureWorker() {
+  if (worker) return;
+  worker = new Worker('/stockfish/stockfish-18-lite-single.js');
+  worker.onmessage = (e) => handleLine(typeof e.data === 'string' ? e.data : String(e.data));
+  worker.onerror   = (e) => setStatus('error', 'Erreur moteur : ' + (e.message || e));
+  // Déclenchement immédiat : le moteur queue les commandes jusqu'à être prêt
+  worker.postMessage('uci');
+  worker.postMessage('isready');
+  setStatus('loading', 'Chargement de Stockfish…');
+}
+
+function handleLine(line) {
+  if (!line) return;
+
+  // Prêt
+  if (line === 'readyok') { setStatus('ready', 'Stockfish prêt'); return; }
+  if (line === 'uciok')   { return; }
+
+  // ── Ligne de progression ──
+  if (line.startsWith('info depth') && line.includes(' pv ')) {
+    const dM = line.match(/depth (\d+)/);
+    const sM = line.match(/score (cp|mate) (-?\d+)/);
+    const pM = line.match(/ pv (\S+)/);
+    if (!dM || !pM) return;
+
+    const depth = +dM[1];
+    if (depth <= lastDepth) return;
+    lastDepth = depth;
+
+    addProgressRow(depth, sM ? [sM[1], sM[2]] : null, pM[1]);
+    setStatus('loading', `Analyse… depth ${depth}`);
+  }
+
+  // ── Meilleur coup ──
+  if (line.startsWith('bestmove')) {
+    const bM   = line.match(/^bestmove (\S+)/);
+    const best = bM ? bM[1] : null;
+
+    if (best && best !== '(none)') {
+      const ff = best.charCodeAt(0) - 96, fr = +best[1];
+      const tf = best.charCodeAt(2) - 96, tr = +best[3];
+
+      renderBoard(pieces, `${ff}${fr}`, `${tf}${tr}`);
+      drawArrow(best);
+
+      $bestUci.textContent = best;
+      $bestUci.classList.remove('empty');
+      $bestDsc.textContent = formatMove(best, pieces);
+      $bestCrd.classList.add('active');
+    }
+
+    analyzing = false;
+    $btnAna.disabled  = false;
+    $btnStop.disabled = true;
+    $btnIcon.innerHTML = '▶';
+    setStatus('ready', `Analyse terminée · depth ${lastDepth}`);
+  }
+}
+
+// ── Analyse ───────────────────────────────────────────────────────────────────
+function startAnalysis() {
+  if (!parseAndRender()) {
+    setStatus('error', 'HTML invalide ou aucune pièce trouvée.');
+    return;
+  }
+
+  const turn  = document.querySelector('input[name=turn]:checked').value;
+  const depth = +$depth.value;
+  const fen   = buildFen(pieces, turn);
+
+  // Reset UI
+  $prog.innerHTML = '';
+  lastDepth = 0;
+  clearArrow();
+  $bestUci.textContent = '—';
+  $bestUci.classList.add('empty');
+  $bestDsc.textContent = 'Analyse en cours…';
+  $bestCrd.classList.remove('active');
+  updateEval(null);
+
+  analyzing = true;
+  $btnAna.disabled  = true;
+  $btnStop.disabled = false;
+  $btnIcon.innerHTML = '<span class="spinner"></span>';
+
+  ensureWorker();
+  setStatus('loading', 'Envoi de la position…');
+  worker.postMessage('stop');
+  worker.postMessage('ucinewgame');
+  worker.postMessage(`position fen ${fen}`);
+  worker.postMessage(`go depth ${depth}`);
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+$btnAna.addEventListener('click', startAnalysis);
+
+$btnStop.addEventListener('click', () => {
+  if (worker) worker.postMessage('stop');
+  analyzing = false;
+  $btnAna.disabled  = false;
+  $btnStop.disabled = true;
+  $btnIcon.innerHTML = '▶';
+  setStatus('ready', 'Analyse arrêtée');
+});
+
+$html.addEventListener('input', () => {
+  const ok = parseAndRender();
+  $btnAna.disabled = !ok;
+  if (!ok) {
+    $fen.textContent = 'Aucune pièce détectée…';
+    $fen.classList.add('empty');
+    $board.innerHTML = '';
+    clearArrow();
+  }
+});
+
+// Turn radio pills
+document.querySelectorAll('input[name=turn]').forEach(radio => {
+  radio.closest('label').addEventListener('click', () => {
+    document.querySelectorAll('.radio-pill').forEach(p => p.classList.remove('active'));
+    radio.closest('label').classList.add('active');
+    if (Object.keys(pieces).length) {
+      const fen = buildFen(pieces, radio.value);
+      $fen.textContent = fen;
+    }
+  });
+});
+
+// Depth slider
+$depth.addEventListener('input', () => { $dval.textContent = $depth.value; });
+
+// ── Préchargement de Stockfish au démarrage ───────────────────────────────────
+ensureWorker();
+syncArrowSvg();
+
+// Pre-fill example if nothing pasted
+$html.focus();
+</script>
+</body>
+</html>

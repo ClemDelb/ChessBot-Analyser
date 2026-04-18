@@ -1,0 +1,19 @@
+{
+  "name": "chessbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start":      "node server.js",
+    "fen":        "node src/board-to-fen.js",
+    "analyse":    "node src/analyse.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1",
+    "stockfish": "^18.0.7"
+  }
+}
