@@ -15,7 +15,7 @@ app.use((req, res, next) => {
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' https://lichess1.org data:",
+    "img-src 'self' https://lichess1.org https://flagcdn.com data:",
     "connect-src 'self' https://www.google-analytics.com https://analytics.google.com",
     "worker-src 'self'",
     "font-src 'self'",

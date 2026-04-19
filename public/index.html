@@ -655,9 +655,6 @@ input[type=range]::-webkit-slider-thumb {
 }
 .ctrl-btn:hover { border-color: var(--border2); background: var(--card2); color: var(--text); }
 .ctrl-btn.active { background: rgba(118,196,66,.12); border-color: var(--green-dim); color: var(--green); }
-.lang-group { display: flex; }
-.lang-group .ctrl-btn:first-child { border-radius: 8px 0 0 8px; }
-.lang-group .ctrl-btn:last-child  { border-radius: 0 8px 8px 0; border-left: none; }
 .theme-btn { font-size: 1.05rem; padding: 4px 9px; }
 
 /* ─── Tooltip ──────────────────────────────────────────────────────────────── */
@@ -809,6 +806,79 @@ input[type=range]::-webkit-slider-thumb {
   pointer-events: none;
   z-index: 9999;
 }
+
+/* ─── Settings Modal ───────────────────────────────────────────────────────── */
+.settings-body { padding: 22px 22px 26px; display: flex; flex-direction: column; gap: 20px; }
+.settings-section { display: flex; flex-direction: column; gap: 10px; }
+.settings-section-title {
+  font-size: .7rem; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text-muted);
+  display: flex; align-items: center; gap: 7px;
+}
+.settings-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.settings-select {
+  width: 100%;
+  padding: 9px 34px 9px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: .85rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: border-color .2s;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a859a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.settings-select:focus { border-color: var(--green-dim); }
+.piece-preview {
+  display: flex; gap: 4px; padding: 10px 14px;
+  background: var(--board-dark);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  justify-content: center; align-items: center;
+}
+.piece-preview img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
+
+/* ─── Lang dropdown ────────────────────────────────────────────────────────── */
+.lang-dropdown { position: relative; }
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  z-index: 200;
+  display: none;
+}
+.lang-menu.open { display: flex; }
+.lang-option {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: .8rem;
+  font-weight: 600;
+  padding: 9px 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background .12s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lang-option:hover { background: var(--card2); color: var(--text); }
+.lang-option.active { color: var(--green); }
+.flag-icon { height: 1em; width: auto; border-radius: 2px; }
+#btn-lang-toggle { display: inline-flex; align-items: center; justify-content: center; line-height: 1.4; padding: 7px 9px; }
 </style>
 </head>
 <body>
@@ -819,10 +889,14 @@ input[type=range]::-webkit-slider-thumb {
   <button class="btn-how-inline" id="btn-how" data-i18n="btnHow">Comment ça fonctionne ?</button>
   <div class="header-controls">
     <span class="badge">Stockfish 18</span>
-    <div class="lang-group">
-      <button class="ctrl-btn active" id="btn-lang-fr">FR</button>
-      <button class="ctrl-btn" id="btn-lang-en">EN</button>
+    <div class="lang-dropdown" id="lang-dropdown">
+      <button class="ctrl-btn theme-btn" id="btn-lang-toggle"><img class="flag-icon" src="https://flagcdn.com/fr.svg" alt="FR"></button>
+      <div class="lang-menu" id="lang-menu">
+        <button class="lang-option" data-lang="fr"><img class="flag-icon" src="https://flagcdn.com/fr.svg" alt="FR"></button>
+        <button class="lang-option" data-lang="en"><img class="flag-icon" src="https://flagcdn.com/gb.svg" alt="EN"></button>
+      </div>
     </div>
+    <button class="ctrl-btn theme-btn" id="btn-settings" title="Paramètres">⚙️</button>
     <button class="ctrl-btn theme-btn" id="btn-theme" title="Toggle theme">🌙</button>
   </div>
 </header>
@@ -944,6 +1018,23 @@ input[type=range]::-webkit-slider-thumb {
 
 </main>
 
+<!-- ── Settings Modal ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="settings-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" data-i18n="settingsTitle">Paramètres</span>
+      <button class="modal-close-btn" id="settings-close">×</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-section">
+        <span class="settings-section-title" data-i18n="settingsPieces">Thème des pièces</span>
+        <select id="piece-set-select" class="settings-select"></select>
+        <div class="piece-preview" id="piece-preview"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal "Comment ça fonctionne ?" ──────────────────────────────────── -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
@@ -976,7 +1067,17 @@ const PIECE_IMG = {
   P:'wP', N:'wN', B:'wB', R:'wR', Q:'wQ', K:'wK',
   p:'bP', n:'bN', b:'bB', r:'bR', q:'bQ', k:'bK',
 };
-const CDN = 'https://lichess1.org/assets/piece/cburnett/';
+const PIECE_SETS = [
+  { id: 'cburnett',  fr: 'Cburnett — Classique',    en: 'Cburnett — Classic' },
+  { id: 'merida',    fr: 'Merida — Traditionnel',   en: 'Merida — Traditional' },
+  { id: 'staunty',   fr: 'Staunty — Staunton',      en: 'Staunty — Staunton' },
+  { id: 'maestro',   fr: 'Maestro — Moderne',       en: 'Maestro — Modern' },
+  { id: 'alpha',     fr: 'Alpha — Minimaliste',      en: 'Alpha — Minimalist' },
+  { id: 'fresca',    fr: 'Fresca — Coloré',          en: 'Fresca — Colorful' },
+  { id: 'companion', fr: 'Companion — Arrondi',      en: 'Companion — Rounded' },
+];
+let pieceSet = localStorage.getItem('pieceSet') || 'maestro';
+let CDN = `https://lichess1.org/assets/piece/${pieceSet}/`;
 const SQ  = 62; // px, doit correspondre à --sq-size
 
 // ── Traductions ───────────────────────────────────────────────────────────────
@@ -1006,6 +1107,7 @@ const LANGS = {
     tooltipHtml:"Clic droit sur l'échiquier chess.com → Inspecter → copie le contenu de la balise <wc-chess-board>.",
     tooltipTurn:"Indique quelle couleur joue le prochain coup. L'évaluation est toujours du point de vue des blancs.",
     tooltipDepth:"Plus la valeur est haute, plus l'analyse est précise mais lente. 20 est un bon compromis.",
+    settingsTitle:'Paramètres', settingsPieces:'Thème des pièces',
     btnHow:"Comment ça fonctionne ?",
     modalTitle:"Comment ça fonctionne ?",
     howSteps:[
@@ -1042,6 +1144,7 @@ const LANGS = {
     tooltipHtml:"Right-click the chess.com board → Inspect → copy the <wc-chess-board> tag content.",
     tooltipTurn:"Indicates which color plays next. Evaluation is always from White's perspective.",
     tooltipDepth:"Higher depth means more accurate but slower analysis. 20 is a good balance.",
+    settingsTitle:'Settings', settingsPieces:'Piece theme',
     btnHow:"How does it work?",
     modalTitle:"How does it work?",
     howSteps:[
@@ -1069,9 +1172,12 @@ function applyLang() {
   $eAdv.textContent = t('evalNone');
   if (!$bestCrd.classList.contains('active')) $bestDsc.textContent = t('bestMoveHint');
   $stxt.textContent = t('statusWaiting');
-  document.getElementById('btn-lang-fr').classList.toggle('active', lang === 'fr');
-  document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-lang-toggle').innerHTML = `<img class="flag-icon" src="https://flagcdn.com/${lang === 'fr' ? 'fr' : 'gb'}.svg" alt="${lang.toUpperCase()}">`;
+  document.querySelectorAll('.lang-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
   if ($overlay.classList.contains('open')) buildSlides();
+  if (document.getElementById('settings-overlay').classList.contains('open')) buildPieceSelect();
 }
 
 function applyTheme() {
@@ -1589,12 +1695,72 @@ document.addEventListener('keydown', e => {
   });
 })();
 
-// ── Langue & thème ────────────────────────────────────────────────────────────
-document.getElementById('btn-lang-fr').addEventListener('click', () => {
-  lang = 'fr'; localStorage.setItem('lang', lang); applyLang();
+// ── Settings Modal ────────────────────────────────────────────────────────────
+const $settingsOverlay = document.getElementById('settings-overlay');
+const $pieceSelect     = document.getElementById('piece-set-select');
+const $piecePreview    = document.getElementById('piece-preview');
+
+function updatePiecePreview() {
+  $piecePreview.innerHTML = '';
+  ['wK','wQ','wR','wB','wN','wP'].forEach(p => {
+    const img = document.createElement('img');
+    img.src = `https://lichess1.org/assets/piece/${pieceSet}/${p}.svg`;
+    img.alt = p;
+    $piecePreview.appendChild(img);
+  });
+}
+
+function buildPieceSelect() {
+  $pieceSelect.innerHTML = '';
+  PIECE_SETS.forEach(set => {
+    const opt = document.createElement('option');
+    opt.value = set.id;
+    opt.textContent = set[lang] || set.en;
+    if (set.id === pieceSet) opt.selected = true;
+    $pieceSelect.appendChild(opt);
+  });
+  updatePiecePreview();
+}
+
+$pieceSelect.addEventListener('change', () => {
+  pieceSet = $pieceSelect.value;
+  CDN = `https://lichess1.org/assets/piece/${pieceSet}/`;
+  localStorage.setItem('pieceSet', pieceSet);
+  updatePiecePreview();
+  if (Object.keys(pieces).length) renderBoard(pieces);
 });
-document.getElementById('btn-lang-en').addEventListener('click', () => {
-  lang = 'en'; localStorage.setItem('lang', lang); applyLang();
+
+document.getElementById('btn-settings').addEventListener('click', () => {
+  buildPieceSelect();
+  $settingsOverlay.classList.add('open');
+});
+document.getElementById('settings-close').addEventListener('click', () => {
+  $settingsOverlay.classList.remove('open');
+});
+$settingsOverlay.addEventListener('click', e => {
+  if (e.target === $settingsOverlay) $settingsOverlay.classList.remove('open');
+});
+
+// ── Langue & thème ────────────────────────────────────────────────────────────
+const $langToggle = document.getElementById('btn-lang-toggle');
+const $langMenu   = document.getElementById('lang-menu');
+
+$langToggle.addEventListener('click', e => {
+  e.stopPropagation();
+  $langMenu.classList.toggle('open');
+});
+document.querySelectorAll('.lang-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    lang = btn.dataset.lang;
+    localStorage.setItem('lang', lang);
+    $langMenu.classList.remove('open');
+    applyLang();
+  });
+});
+document.addEventListener('click', e => {
+  if (!document.getElementById('lang-dropdown').contains(e.target)) {
+    $langMenu.classList.remove('open');
+  }
 });
 document.getElementById('btn-theme').addEventListener('click', () => {
   theme = theme === 'dark' ? 'light' : 'dark';
