@@ -383,14 +383,17 @@ input[type=range]::-webkit-slider-thumb {
 }
 .sq.light { background: var(--board-light); }
 .sq.dark  { background: var(--board-dark); }
-.sq.hl-from { outline: inset 4px var(--hl-from); background: var(--hl-from); }
-.sq.hl-to   { outline: inset 4px var(--hl-to);   background: var(--hl-to);   }
+.sq.hl-from   { outline: inset 4px var(--hl-from); background: var(--hl-from); }
+.sq.hl-to     { outline: inset 4px var(--hl-to);   background: var(--hl-to);   }
+.sq.drag-over { outline: inset 3px var(--green); background: var(--green-glow); }
+.sq.dragging  { opacity: .35; }
+.sq img       { cursor: grab; user-select: none; -webkit-user-drag: none; }
+.dragging-active .sq img { cursor: grabbing; }
 
 .sq img {
   width: 90%;
   height: 90%;
   object-fit: contain;
-  pointer-events: none;
   filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
 }
 
@@ -950,11 +953,12 @@ input[type=range]::-webkit-slider-thumb {
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-primary" id="btn-analyse" disabled>
+      <button class="btn btn-primary" id="btn-analyse">
         <span id="btn-icon">▶</span><span data-i18n="btnAnalyze"> Analyser</span>
       </button>
       <button class="btn btn-secondary" id="btn-stop" disabled title="Arrêter l'analyse">■</button>
     </div>
+    <button class="btn btn-secondary" id="btn-reset" style="width:100%"><span data-i18n="btnReset">Reset</span></button>
 
     <div class="status-bar">
       <span class="status-dot" id="status-dot"></span>
@@ -1081,6 +1085,13 @@ let pieceSet = localStorage.getItem('pieceSet') || 'maestro';
 let CDN = `https://lichess1.org/assets/piece/${pieceSet}/`;
 const SQ  = 62; // px, doit correspondre à --sq-size
 
+const START_POSITION = {
+  '11':'R','21':'N','31':'B','41':'Q','51':'K','61':'B','71':'N','81':'R',
+  '12':'P','22':'P','32':'P','42':'P','52':'P','62':'P','72':'P','82':'P',
+  '17':'p','27':'p','37':'p','47':'p','57':'p','67':'p','77':'p','87':'p',
+  '18':'r','28':'n','38':'b','48':'q','58':'k','68':'b','78':'n','88':'r',
+};
+
 // ── Traductions ───────────────────────────────────────────────────────────────
 const LANGS = {
   fr: {
@@ -1088,7 +1099,7 @@ const LANGS = {
     labelHtml:'Coller le HTML <wc-chess-board>', labelTurn:'Trait à',
     labelWhite:' Blancs', labelBlack:' Noirs',
     labelDepth:"Profondeur d'analyse", labelFen:'FEN généré',
-    btnAnalyze:' Analyser',
+    btnAnalyze:' Analyser', btnReset:'Réinitialiser',
     placeholderHtml:"Colle ici le contenu de wc-chess-board…\n\nLes pièces (class=\"piece wp square-64\") seront\ndétectées automatiquement.",
     fenEmpty:"En attente d'une position…", fenNoPieces:'Aucune pièce détectée…',
     statusWaiting:'En attente…', statusLoading:'Chargement de Stockfish…',
@@ -1112,12 +1123,13 @@ const LANGS = {
     btnHow:"Comment ça fonctionne ?",
     modalTitle:"Comment ça fonctionne ?",
     howSteps:[
-      { icon:'♟', label:'Introduction',  title:'Bienvenue sur Chesscan',           desc:"Chesscan analyse n'importe quelle position chess.com avec Stockfish 18, directement dans ton navigateur. Aucune installation, 100&nbsp;% gratuit." },
-      { icon:'🌐', label:'Étape 1 sur 5', title:'Ouvrir une partie chess.com',       desc:"Va sur chess.com et positionne-toi sur une partie en cours ou terminée. L'échiquier doit être visible à l'écran." },
-      { icon:'🔍', label:'Étape 2 sur 5', title:"Ouvrir l'inspecteur",               desc:"Fais un <strong>clic droit</strong> sur l'échiquier puis clique sur « Inspecter » (ou appuie sur <strong>F12</strong>). Le panneau développeur s'ouvre." },
-      { icon:'📋', label:'Étape 3 sur 5', title:"Copier le HTML de l'échiquier",     desc:"Dans le panneau HTML, repère la balise <code>&lt;wc-chess-board&gt;</code>. Fais un clic droit dessus → « Copier » → « Copier l'élément »." },
-      { icon:'⚙️', label:'Étape 4 sur 5', title:'Coller et configurer',              desc:"Colle le HTML dans la zone de texte de Chesscan. Sélectionne quelle couleur a le trait et ajuste la profondeur si besoin." },
-      { icon:'⚡', label:'Étape 5 sur 5', title:'Analyser !',                         desc:"Clique sur « Analyser ». Stockfish 18 calcule le meilleur coup en temps réel. La <strong>flèche verte</strong> sur l'échiquier indique le coup recommandé." },
+      { icon:'♟', label:'Introduction',      title:'Bienvenue sur Chesscan',           desc:"Chesscan analyse n'importe quelle position d'échecs avec Stockfish 18, directement dans ton navigateur. Deux façons de saisir une position&nbsp;: <strong>à la main</strong> sur l'échiquier, ou en <strong>important le HTML</strong> depuis chess.com." },
+      { icon:'🖱️', label:'Méthode 1',         title:'Échiquier interactif',             desc:"<strong>Glisse</strong> les pièces directement sur l'échiquier pour composer ta position. <strong>Clic droit</strong> sur une pièce pour la supprimer. Le bouton <strong>Réinitialiser</strong> remet toutes les pièces en position de départ. Clique ensuite sur <strong>Analyser</strong>." },
+      { icon:'🌐', label:'Méthode HTML · 1/5', title:'Ouvrir une partie chess.com',     desc:"Va sur chess.com et positionne-toi sur une partie en cours ou terminée. L'échiquier doit être visible à l'écran." },
+      { icon:'🔍', label:'Méthode HTML · 2/5', title:"Ouvrir l'inspecteur",             desc:"Fais un <strong>clic droit</strong> sur l'échiquier puis clique sur « Inspecter » (ou appuie sur <strong>F12</strong>). Le panneau développeur s'ouvre." },
+      { icon:'📋', label:'Méthode HTML · 3/5', title:"Copier le HTML de l'échiquier",   desc:"Dans le panneau HTML, repère la balise <code>&lt;wc-chess-board&gt;</code>. Fais un clic droit dessus → « Copier » → « Copier l'élément »." },
+      { icon:'⚙️', label:'Méthode HTML · 4/5', title:'Coller et configurer',            desc:"Colle le HTML dans la zone de texte de Chesscan. La position écrase l'échiquier actuel. Sélectionne quelle couleur a le trait et ajuste la profondeur si besoin." },
+      { icon:'⚡', label:'Méthode HTML · 5/5', title:'Analyser !',                       desc:"Clique sur « Analyser ». Stockfish 18 calcule le meilleur coup en temps réel. La <strong>flèche verte</strong> sur l'échiquier indique le coup recommandé." },
     ],
   },
   en: {
@@ -1125,7 +1137,7 @@ const LANGS = {
     labelHtml:'Paste HTML <wc-chess-board>', labelTurn:'Turn',
     labelWhite:' White', labelBlack:' Black',
     labelDepth:'Analysis depth', labelFen:'Generated FEN',
-    btnAnalyze:' Analyze',
+    btnAnalyze:' Analyze', btnReset:'Reset',
     placeholderHtml:"Paste wc-chess-board content here…\n\nPieces (class=\"piece wp square-64\") will\nbe detected automatically.",
     fenEmpty:'Waiting for a position…', fenNoPieces:'No pieces detected…',
     statusWaiting:'Waiting…', statusLoading:'Loading Stockfish…',
@@ -1149,12 +1161,13 @@ const LANGS = {
     btnHow:"How does it work?",
     modalTitle:"How does it work?",
     howSteps:[
-      { icon:'♟', label:'Introduction',  title:'Welcome to Chesscan',              desc:"Chesscan analyzes any chess.com position using Stockfish 18, directly in your browser. No installation needed, 100% free." },
-      { icon:'🌐', label:'Step 1 of 5',  title:'Open a chess.com game',            desc:"Go to chess.com and navigate to a game in progress or a finished one. The chessboard must be visible on screen." },
-      { icon:'🔍', label:'Step 2 of 5',  title:'Open the inspector',               desc:"<strong>Right-click</strong> on the chessboard and select « Inspect » (or press <strong>F12</strong>). The developer tools panel will open." },
-      { icon:'📋', label:'Step 3 of 5',  title:'Copy the board HTML',              desc:"In the HTML panel, find the <code>&lt;wc-chess-board&gt;</code> tag. Right-click on it → « Copy » → « Copy element »." },
-      { icon:'⚙️', label:'Step 4 of 5',  title:'Paste and configure',              desc:"Paste the HTML into Chesscan's text area. Select which color has the turn and adjust the depth if needed." },
-      { icon:'⚡', label:'Step 5 of 5',  title:'Analyze!',                          desc:"Click « Analyze ». Stockfish 18 calculates the best move in real time. The <strong>green arrow</strong> on the board shows the recommended move." },
+      { icon:'♟', label:'Introduction',       title:'Welcome to Chesscan',            desc:"Chesscan analyzes any chess position using Stockfish 18, directly in your browser. No installation needed, 100% free. Two ways to set up a position: <strong>drag pieces</strong> on the board, or <strong>import HTML</strong> from chess.com." },
+      { icon:'🖱️', label:'Method 1',           title:'Interactive board',              desc:"<strong>Drag</strong> pieces directly on the board to set up your position. <strong>Right-click</strong> a piece to remove it. The <strong>Reset</strong> button restores the starting position. Then click <strong>Analyze</strong>." },
+      { icon:'🌐', label:'HTML method · 1/5',  title:'Open a chess.com game',          desc:"Go to chess.com and navigate to a game in progress or a finished one. The chessboard must be visible on screen." },
+      { icon:'🔍', label:'HTML method · 2/5',  title:'Open the inspector',             desc:"<strong>Right-click</strong> on the chessboard and select « Inspect » (or press <strong>F12</strong>). The developer tools panel will open." },
+      { icon:'📋', label:'HTML method · 3/5',  title:'Copy the board HTML',            desc:"In the HTML panel, find the <code>&lt;wc-chess-board&gt;</code> tag. Right-click on it → « Copy » → « Copy element »." },
+      { icon:'⚙️', label:'HTML method · 4/5',  title:'Paste and configure',            desc:"Paste the HTML into Chesscan's text area. It overrides the current board position. Select which color has the turn and adjust the depth if needed." },
+      { icon:'⚡', label:'HTML method · 5/5',  title:'Analyze!',                        desc:"Click « Analyze ». Stockfish 18 calculates the best move in real time. The <strong>green arrow</strong> on the board shows the recommended move." },
     ],
   },
 };
@@ -1188,7 +1201,7 @@ function applyTheme() {
 }
 
 // ── État global ───────────────────────────────────────────────────────────────
-let pieces    = {};
+let pieces    = {...START_POSITION};
 let flipped   = false;
 let worker    = null;
 let analyzing = false;
@@ -1277,12 +1290,75 @@ function updateCoords() {
 }
 
 // ── Board rendering ───────────────────────────────────────────────────────────
+function onPieceDrop(fromKey, toKey) {
+  if (fromKey === toKey || !pieces[fromKey]) return;
+  pieces[toKey] = pieces[fromKey];
+  delete pieces[fromKey];
+  const turn = document.querySelector('input[name=turn]:checked').value;
+  $fen.textContent = buildFen(pieces, turn);
+  $fen.classList.remove('empty');
+  clearArrow();
+  updateEval(null);
+  $bestUci.textContent = '—';
+  $bestUci.classList.add('empty');
+  $bestCrd.classList.remove('active');
+  $prog.innerHTML = '';
+  renderBoard(pieces);
+  syncArrowSvg();
+}
+
+// ── Drag state (module-level) ─────────────────────────────────────────────────
+let dragFrom     = null;
+let dragFloater  = null;
+let dragHover    = null;
+
+function startDrag(key, e, imgEl) {
+  e.preventDefault();
+  dragFrom = key;
+  imgEl.closest('.sq').classList.add('dragging');
+  document.body.classList.add('dragging-active');
+  const size = Math.round(SQ * 0.92);
+  dragFloater = document.createElement('img');
+  dragFloater.src = imgEl.src;
+  dragFloater.style.cssText = `position:fixed;width:${size}px;height:${size}px;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);filter:drop-shadow(0 4px 10px rgba(0,0,0,.6));`;
+  document.body.appendChild(dragFloater);
+  dragFloater.style.left = e.clientX + 'px';
+  dragFloater.style.top  = e.clientY + 'px';
+}
+
+document.addEventListener('mousemove', e => {
+  if (!dragFrom) return;
+  dragFloater.style.left = e.clientX + 'px';
+  dragFloater.style.top  = e.clientY + 'px';
+  const el  = document.elementFromPoint(e.clientX, e.clientY);
+  const sq  = el && el.closest('[data-sq]');
+  const key = sq ? sq.dataset.sq : null;
+  if (key !== dragHover) {
+    if (dragHover) { const s = $board.querySelector(`[data-sq="${dragHover}"]`); if (s) s.classList.remove('drag-over'); }
+    dragHover = key || null;
+    if (dragHover && dragHover !== dragFrom) { const s = $board.querySelector(`[data-sq="${dragHover}"]`); if (s) s.classList.add('drag-over'); }
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (!dragFrom) return;
+  dragFloater.remove(); dragFloater = null;
+  if (dragHover) { const s = $board.querySelector(`[data-sq="${dragHover}"]`); if (s) s.classList.remove('drag-over'); }
+  document.querySelectorAll('.sq.dragging').forEach(s => s.classList.remove('dragging'));
+  document.body.classList.remove('dragging-active');
+  const el  = document.elementFromPoint(e.clientX, e.clientY);
+  const sq  = el && el.closest('[data-sq]');
+  const to  = sq ? sq.dataset.sq : null;
+  const from = dragFrom;
+  dragFrom = null; dragHover = null;
+  if (to && to !== from) onPieceDrop(from, to);
+});
+
 function renderBoard(p, fromSq, toSq) {
   $board.innerHTML = '';
   clearArrow();
   updateCoords();
 
-  // Draw 64 squares, respecting board orientation
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
       const file  = flipped ? 8 - col : col + 1;
@@ -1292,15 +1368,26 @@ function renderBoard(p, fromSq, toSq) {
 
       const sq = document.createElement('div');
       sq.className = `sq ${light ? 'light' : 'dark'}`;
+      sq.dataset.sq = key;
       if (fromSq && key === fromSq) sq.classList.add('hl-from');
       if (toSq   && key === toSq)   sq.classList.add('hl-to');
 
       const letter = p[key];
       if (letter) {
         const img = document.createElement('img');
-        img.src  = `${CDN}${PIECE_IMG[letter]}.svg`;
-        img.alt  = letter;
+        img.src      = `${CDN}${PIECE_IMG[letter]}.svg`;
+        img.alt      = letter;
         img.draggable = false;
+        img.addEventListener('mousedown', e => startDrag(key, e, img));
+        img.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          delete pieces[key];
+          const turn = document.querySelector('input[name=turn]:checked').value;
+          $fen.textContent = buildFen(pieces, turn);
+          $fen.classList.remove('empty');
+          renderBoard(pieces);
+          syncArrowSvg();
+        });
         sq.appendChild(img);
       }
       $board.appendChild(sq);
@@ -1542,7 +1629,14 @@ function handleLine(line) {
 
 // ── Analyse ───────────────────────────────────────────────────────────────────
 function startAnalysis() {
-  if (!parseAndRender()) {
+  if ($html.value.trim()) {
+    if (!parseAndRender()) {
+      setStatus('error', t('statusErrorHtml'));
+      return;
+    }
+  }
+
+  if (Object.keys(pieces).length === 0) {
     setStatus('error', t('statusErrorHtml'));
     return;
   }
@@ -1587,13 +1681,19 @@ $btnStop.addEventListener('click', () => {
 });
 
 $html.addEventListener('input', () => {
+  if (!$html.value.trim()) {
+    pieces = {...START_POSITION};
+    const turn = document.querySelector('input[name=turn]:checked').value;
+    $fen.textContent = buildFen(pieces, turn);
+    $fen.classList.remove('empty');
+    renderBoard(pieces);
+    syncArrowSvg();
+    return;
+  }
   const ok = parseAndRender();
-  $btnAna.disabled = !ok;
   if (!ok) {
     $fen.textContent = t('fenNoPieces');
     $fen.classList.add('empty');
-    $board.innerHTML = '';
-    clearArrow();
   }
 });
 
@@ -1768,14 +1868,32 @@ document.getElementById('btn-theme').addEventListener('click', () => {
   localStorage.setItem('theme', theme); applyTheme();
 });
 
+document.getElementById('btn-reset').addEventListener('click', () => {
+  pieces = {...START_POSITION};
+  $html.value = '';
+  const turn = document.querySelector('input[name=turn]:checked').value;
+  $fen.textContent = buildFen(pieces, turn);
+  $fen.classList.remove('empty');
+  clearArrow();
+  $bestUci.textContent = '—';
+  $bestUci.classList.add('empty');
+  $bestCrd.classList.remove('active');
+  $prog.innerHTML = '';
+  updateEval(null);
+  renderBoard(pieces);
+  syncArrowSvg();
+});
+
 // ── Préchargement de Stockfish au démarrage ───────────────────────────────────
 applyTheme();
 applyLang();
 ensureWorker();
-syncArrowSvg();
 
-// Pre-fill example if nothing pasted
-$html.focus();
+const _initTurn = document.querySelector('input[name=turn]:checked').value;
+$fen.textContent = buildFen(pieces, _initTurn);
+$fen.classList.remove('empty');
+renderBoard(pieces);
+syncArrowSvg();
 </script>
 </body>
 </html>
